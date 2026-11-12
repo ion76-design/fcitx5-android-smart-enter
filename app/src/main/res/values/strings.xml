@@ -321,4 +321,25 @@
     <string name="keyboard_height_percent_base">Keyboard height percent base</string>
     <string name="display_metrics">Display metrics (Resources.getDisplayMetrics)</string>
     <string name="real_size">Real size (Display.getRealSize)</string>
+    <string name="smart_enter_mode">Smart Enter (Enter key sends message)</string>
+    <string name="smart_enter_off">Off</string>
+    <string name="smart_enter_listed_apps">On for listed apps</string>
+    <string name="smart_enter_all_apps">On for all apps</string>
+    <string name="smart_enter_packages">Smart Enter apps</string>
+    <string name="smart_enter_packages_hint">Package names separated by commas. Default: X, Instagram, LINE, KakaoTalk</string>
+    <string name="smart_enter_accessibility">Smart Enter: auto-click send button</string>
+    <string name="smart_enter_accessibility_summary">Many chat apps ignore the keyboard\'s send action. Enable \"Fcitx5 Smart Enter\" in Accessibility settings, so pressing Enter clicks the app\'s send button. It only acts when you press Enter in a Smart Enter app and does not collect any data. Long press Enter to insert a newline. Tap to open Accessibility settings.</string>
+    <string name="smart_enter_accessibility_label">Fcitx5 Smart Enter</string>
+    <string name="smart_enter_accessibility_summary_short">Lets the Enter key of Fcitx5 click the send button in chat apps</string>
+    <string name="smart_enter_accessibility_description">When Smart Enter is enabled in Fcitx5 keyboard settings and you press Enter in a listed app, this service looks for the send button next to the input box in the current window and clicks it. It does nothing at any other time, ignores accessibility events, and never stores or transmits screen content.</string>
+    <string name="smart_enter_fallback">Smart Enter: when no send button is found</string>
+    <string name="smart_enter_fallback_enter">Send a normal Enter key</string>
+    <string name="smart_enter_fallback_action">Send the keyboard \"Send\" action (may hide the keyboard in some apps)</string>
+    <string name="smart_enter_diagnostic">Smart Enter diagnostic mode</string>
+    <string name="smart_enter_diagnostic_summary">When no send button is found, show a message and save a list of the buttons near the bottom of the screen to Download/fcitx5-smart-enter-dump-*.txt. It records button labels only (id, description, labels up to 12 characters, position), never what you type or chat message content.</string>
+    <string name="smart_enter_diag_clicked">Smart Enter clicked: %1$s</string>
+    <string name="smart_enter_diag_not_found">Smart Enter: no send button found. Dump saved to %1$s</string>
+    <string name="smart_enter_diag_not_found_nosave">Smart Enter: no send button found (failed to save dump)</string>
+    <string name="smart_enter_diag_no_window">Smart Enter: cannot read the app window. Re-enable the accessibility service.</string>
+    <string name="smart_enter_diag_disabled">Smart Enter: accessibility service is off, using fallback</string>
 </resources>

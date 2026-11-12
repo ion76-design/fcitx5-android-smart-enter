@@ -7,6 +7,7 @@ package org.fcitx.fcitx5.android.input.broadcast
 import android.view.inputmethod.EditorInfo
 import androidx.annotation.DrawableRes
 import org.fcitx.fcitx5.android.R
+import org.fcitx.fcitx5.android.input.smartenter.SmartEnter
 import org.mechdancer.dependency.Dependent
 import org.mechdancer.dependency.UniqueComponent
 import org.mechdancer.dependency.manager.ManagedHandler
@@ -33,6 +34,9 @@ class ReturnKeyDrawableComponent :
 
     @DrawableRes
     private fun drawableFromEditorInfo(info: EditorInfo): Int {
+        if (SmartEnter.isActive(info)) {
+            return R.drawable.ic_baseline_send_24
+        }
         if (info.imeOptions.hasFlag(EditorInfo.IME_FLAG_NO_ENTER_ACTION)) {
             return R.drawable.ic_baseline_keyboard_return_24
         }

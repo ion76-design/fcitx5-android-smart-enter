@@ -18,6 +18,8 @@ import org.fcitx.fcitx5.android.input.candidates.floating.FloatingCandidatesOrie
 import org.fcitx.fcitx5.android.input.candidates.horizontal.HorizontalCandidateMode
 import org.fcitx.fcitx5.android.input.keyboard.KeyboardHeightPercentBase
 import org.fcitx.fcitx5.android.input.keyboard.LangSwitchBehavior
+import org.fcitx.fcitx5.android.input.keyboard.SmartEnterFallback
+import org.fcitx.fcitx5.android.input.keyboard.SmartEnterMode
 import org.fcitx.fcitx5.android.input.keyboard.SpaceLongPressBehavior
 import org.fcitx.fcitx5.android.input.keyboard.SwipeSymbolDirection
 import org.fcitx.fcitx5.android.input.picker.PickerWindow
@@ -184,6 +186,39 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             "lang_switch_key_behavior",
             LangSwitchBehavior.Enumerate
         ) { showLangSwitchKey.getValue() }
+
+        val smartEnterMode = enumList(
+            R.string.smart_enter_mode,
+            "smart_enter_mode",
+            SmartEnterMode.Off
+        )
+        val smartEnterPackages = editTextString(
+            R.string.smart_enter_packages,
+            "smart_enter_packages",
+            SmartEnterMode.DEFAULT_PACKAGES,
+            R.string.smart_enter_packages_hint
+        ) { smartEnterMode.getValue() == SmartEnterMode.ListedApps }
+
+        val smartEnterFallback = enumList(
+            R.string.smart_enter_fallback,
+            "smart_enter_fallback",
+            SmartEnterFallback.EnterKey
+        ) { smartEnterMode.getValue() != SmartEnterMode.Off }
+
+        init {
+            accessibilitySettingsLink(
+                R.string.smart_enter_accessibility,
+                R.string.smart_enter_accessibility_summary,
+                "smart_enter_accessibility_link"
+            ) { smartEnterMode.getValue() != SmartEnterMode.Off }
+        }
+
+        val smartEnterDiagnostic = switch(
+            R.string.smart_enter_diagnostic,
+            "smart_enter_diagnostic",
+            false,
+            R.string.smart_enter_diagnostic_summary
+        ) { smartEnterMode.getValue() != SmartEnterMode.Off }
 
         val keyboardHeightPercent: ManagedPreference.PInt
         val keyboardHeightPercentLandscape: ManagedPreference.PInt

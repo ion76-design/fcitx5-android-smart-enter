@@ -5,6 +5,8 @@
 package org.fcitx.fcitx5.android.data.prefs
 
 import android.content.Context
+import android.content.Intent
+import android.provider.Settings
 import androidx.annotation.StringRes
 import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
@@ -123,6 +125,57 @@ abstract class ManagedPreferenceUi<T : Preference>(
             min = this@EditTextInt.min
             max = this@EditTextInt.max
             unit = this@EditTextInt.unit
+        }
+    }
+
+    class EditTextString(
+        @StringRes
+        val title: Int,
+        key: String,
+        val defaultValue: String,
+        @StringRes
+        val dialogMessage: Int? = null,
+        enableUiOn: (() -> Boolean)? = null
+    ) : ManagedPreferenceUi<EditTextPreference>(key, enableUiOn) {
+        override fun createUi(context: Context) = EditTextPreference(context).apply {
+            key = this@EditTextString.key
+            isIconSpaceReserved = false
+            isSingleLineTitle = false
+            setDefaultValue(this@EditTextString.defaultValue)
+            setTitle(this@EditTextString.title)
+            setDialogTitle(this@EditTextString.title)
+            this@EditTextString.dialogMessage?.let { setDialogMessage(it) }
+            summaryProvider = EditTextPreference.SimpleSummaryProvider.getInstance()
+        }
+    }
+
+    /**
+     * A preference entry without backing value, which opens system accessibility settings on click
+     */
+    class AccessibilitySettingsLink(
+        @StringRes
+        val title: Int,
+        @StringRes
+        val summary: Int,
+        key: String,
+        enableUiOn: (() -> Boolean)? = null
+    ) : ManagedPreferenceUi<Preference>(key, enableUiOn) {
+        override fun createUi(context: Context) = Preference(context).apply {
+            key = this@AccessibilitySettingsLink.key
+            isIconSpaceReserved = false
+            isSingleLineTitle = false
+            isPersistent = false
+            setTitle(this@AccessibilitySettingsLink.title)
+            setSummary(this@AccessibilitySettingsLink.summary)
+            setOnPreferenceClickListener {
+                runCatching {
+                    context.startActivity(
+                        Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }
+                true
+            }
         }
     }
 

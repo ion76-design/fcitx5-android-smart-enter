@@ -234,6 +234,10 @@ class ReturnKey(percentWidth: Float = 0.15f) : KeyDef(
     arrayOf(
         Popup.Menu(
             arrayOf(
+                // first item is focused by default: long press then release inserts a newline
+                Popup.Menu.Item(
+                    "Newline", R.drawable.ic_baseline_keyboard_return_24, KeyAction.NewlineAction
+                ),
                 Popup.Menu.Item(
                     "Emoji", R.drawable.ic_baseline_tag_faces_24, KeyAction.PickerSwitchAction()
                 )
