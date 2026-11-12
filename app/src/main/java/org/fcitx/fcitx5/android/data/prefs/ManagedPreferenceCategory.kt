@@ -78,6 +78,33 @@ abstract class ManagedPreferenceCategory(
         return pref
     }
 
+    protected fun editTextString(
+        @StringRes
+        title: Int,
+        key: String,
+        defaultValue: String,
+        @StringRes
+        dialogMessage: Int? = null,
+        enableUiOn: (() -> Boolean)? = null
+    ): ManagedPreference.PString {
+        val pref = ManagedPreference.PString(sharedPreferences, key, defaultValue)
+        val ui = ManagedPreferenceUi.EditTextString(title, key, defaultValue, dialogMessage, enableUiOn)
+        pref.register()
+        ui.registerUi()
+        return pref
+    }
+
+    protected fun accessibilitySettingsLink(
+        @StringRes
+        title: Int,
+        @StringRes
+        summary: Int,
+        key: String,
+        enableUiOn: (() -> Boolean)? = null
+    ) {
+        ManagedPreferenceUi.AccessibilitySettingsLink(title, summary, key, enableUiOn).registerUi()
+    }
+
     protected fun int(
         @StringRes
         title: Int,

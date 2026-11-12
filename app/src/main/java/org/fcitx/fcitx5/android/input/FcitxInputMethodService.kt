@@ -26,6 +26,7 @@ import android.view.Window
 import android.view.WindowManager
 import android.view.inputmethod.CursorAnchorInfo
 import android.view.inputmethod.EditorInfo
+import android.widget.Toast
 import android.view.inputmethod.InlineSuggestionsRequest
 import android.view.inputmethod.InlineSuggestionsResponse
 import android.view.inputmethod.InputMethodSubtype
@@ -41,10 +42,16 @@ import androidx.autofill.inline.v1.InlineSuggestionUi
 import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.fcitx.fcitx5.android.input.smartenter.SmartEnter
+import org.fcitx.fcitx5.android.input.smartenter.SmartEnterAccessibilityService
+import org.fcitx.fcitx5.android.input.smartenter.SmartEnterDump
+import org.fcitx.fcitx5.android.input.keyboard.SmartEnterFallback
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.CapabilityFlags
 import org.fcitx.fcitx5.android.core.FcitxAPI
@@ -380,7 +387,97 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         }
     }
 
+    private var smartEnterJob: Job? = null
+
+    /**
+     * Smart Enter: try to send the message in chat apps that don't declare an editor action.
+     * 1. if the optional accessibility service is enabled, click the app's send button;
+     * 2. otherwise (or no button found) fall back to a plain Enter key (default), or IME_ACTION_SEND
+     *    if the user chose so (some apps, eg. X, merely hide the keyboard on that action).
+     * @return true if the return key has been handled
+     */
+    private fun handleSmartEnter(): Boolean {
+        val info = currentInputEditorInfo ?: return false
+        if (!SmartEnter.isActive(info)) return false
+        val pkg = info.packageName ?: return false
+        val kbd = prefs.keyboard
+        val diagnostic = kbd.smartEnterDiagnostic.getValue()
+        val useEditorAction = kbd.smartEnterFallback.getValue() == SmartEnterFallback.EditorAction
+        val action = when (val declared = info.imeOptions and EditorInfo.IME_MASK_ACTION) {
+            EditorInfo.IME_ACTION_UNSPECIFIED, EditorInfo.IME_ACTION_NONE -> EditorInfo.IME_ACTION_SEND
+            else -> declared
+        }
+        val fallback = {
+            if (useEditorAction) {
+                currentInputConnection?.performEditorAction(action)
+            } else {
+                // plain Enter: newline, or "Enter to send" if the app has such a setting
+                sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
+            }
+        }
+        val a11y = SmartEnterAccessibilityService.instance
+        if (a11y == null) {
+            if (diagnostic) toast(getString(R.string.smart_enter_diag_disabled))
+            fallback()
+            return true
+        }
+        // ignore repeated presses while the previous one is still being processed
+        if (smartEnterJob?.isActive == true) return true
+        smartEnterJob = lifecycleScope.launch {
+            val result = withContext(Dispatchers.Default) {
+                runCatching { a11y.clickSendButton(pkg, diagnostic) }
+                    .getOrDefault(SmartEnterAccessibilityService.Result.NotFound(null))
+            }
+            when (result) {
+                is SmartEnterAccessibilityService.Result.Clicked -> {
+                    if (diagnostic) toast(getString(R.string.smart_enter_diag_clicked, result.description))
+                    return@launch
+                }
+                is SmartEnterAccessibilityService.Result.NotFound -> {
+                    if (diagnostic) {
+                        val path = result.dump?.let {
+                            withContext(Dispatchers.IO) { SmartEnterDump.save(this@FcitxInputMethodService, pkg, it) }
+                        }
+                        toast(
+                            if (path != null) getString(R.string.smart_enter_diag_not_found, path)
+                            else getString(R.string.smart_enter_diag_not_found_nosave)
+                        )
+                    }
+                }
+                SmartEnterAccessibilityService.Result.NoWindow -> {
+                    if (diagnostic) toast(getString(R.string.smart_enter_diag_no_window))
+                }
+            }
+            if (currentInputEditorInfo?.packageName == pkg) fallback()
+        }
+        return true
+    }
+
+    private fun toast(msg: String) {
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+    }
+
+    /**
+     * Insert a line break regardless of editor action (long press on return key).
+     * Text fields get a committed "\n" (doesn't trigger apps' "Enter to send" key listeners);
+     * raw key fields (eg. terminals) get Shift+Enter.
+     */
+    fun insertNewline() {
+        val info = currentInputEditorInfo ?: return
+        if (info.inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_NULL) {
+            val eventTime = SystemClock.uptimeMillis()
+            val meta = KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON
+            sendDownKeyEvent(eventTime, KeyEvent.KEYCODE_SHIFT_LEFT, meta)
+            sendDownKeyEvent(eventTime, KeyEvent.KEYCODE_ENTER, meta)
+            sendUpKeyEvent(eventTime, KeyEvent.KEYCODE_ENTER, meta)
+            sendUpKeyEvent(eventTime, KeyEvent.KEYCODE_SHIFT_LEFT, 0)
+            return
+        }
+        commitText("\n")
+    }
+
     private fun handleReturnKey() {
+        if (handleSmartEnter()) return
         currentInputEditorInfo.run {
             if (inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_NULL ||
                 imeOptions.hasFlag(EditorInfo.IME_FLAG_NO_ENTER_ACTION)
