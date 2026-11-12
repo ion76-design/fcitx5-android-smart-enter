@@ -2,6 +2,32 @@
 
 [Fcitx5](https://github.com/fcitx/fcitx5) input method framework and engines ported to Android.
 
+## 智能回车（本 fork）
+
+本仓库是 [fcitx5-android](https://github.com/fcitx5-android/fcitx5-android) 的个人 fork，增加可选的「智能回车」：聊天应用里回车键变成发送键，可按应用列表生效，也可对所有应用生效。可选的无障碍服务会在按下回车时点击应用自己的发送按钮。
+
+- 开启：设置 → 虚拟键盘 → 智能回车。
+- 在系统无障碍设置中启用「Fcitx5 智能回车」。Android 13 及以上若开关不可用，先到应用信息页允许「受限设置」。
+- 长按回车插入换行。
+- 诊断模式默认关闭。打开后，找不到发送按钮时会把按钮标签写到 `Download/fcitx5-smart-enter-dump-*.txt`。
+
+隐私：应用没有 `INTERNET` 权限。无障碍辅助只在按下回车时动作，不保存任何内容。诊断记录只含按钮标签，且默认关闭。
+
+签名与官方版不同，必须替换官方应用，不能覆盖安装。Rime 等插件须用同一把密钥编译，才能被本应用加载。
+
+## Smart Enter (this fork)
+
+This is a personal fork of [fcitx5-android](https://github.com/fcitx5-android/fcitx5-android). It adds an opt-in Smart Enter feature: the return key becomes a Send key in chat apps, for a per-app list or for all apps. An optional accessibility service clicks the app's own send button when Enter is pressed.
+
+- Enable it under Settings → Virtual keyboard → Smart Enter.
+- Turn on "Fcitx5 Smart Enter" in Android accessibility settings. On Android 13 and later, if the switch is unavailable, allow restricted settings on the app info page.
+- Long-press Enter to insert a newline.
+- Diagnostic mode is off by default. When it is on and no send button is found, button labels are written to `Download/fcitx5-smart-enter-dump-*.txt`.
+
+Privacy: the app has no `INTERNET` permission. The accessibility helper acts only when Enter is pressed and stores nothing. The diagnostic dump records button labels only and is off by default.
+
+The package must replace the official app (different signature, so it cannot be installed over it). Plugins such as Rime must be built with the same signing key.
+
 ## Download
 
 [<img src="https://github.com/rubenpgrady/get-it-on-github/raw/refs/heads/main/get-it-on-github.png" alt="Git it on GitHub" width="207" height="80">](https://github.com/fcitx5-android/fcitx5-android/releases/latest)
