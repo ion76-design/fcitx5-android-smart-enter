@@ -4,53 +4,93 @@
 
 ## 智能回车（本 fork）
 
-本仓库是 [fcitx5-android](https://github.com/fcitx5-android/fcitx5-android) 的个人 fork，增加可选的「智能回车」：聊天应用里回车键变成发送键，可按应用列表生效，也可对所有应用生效。可选的无障碍服务会在按下回车时点击应用自己的发送按钮。
+这是带有智能回车（Smart Enter）的 fcitx5-android（小企鹅输入法），是上游 [fcitx5-android](https://github.com/fcitx5-android/fcitx5-android) 的个人 fork。在聊天里，回车键会变成发送，接近 iOS 键盘，例如 X、Instagram、LINE、KakaoTalk。可以只对列表中的应用开启，也可以对所有应用开启；默认列表就是这四个。某个应用能不能发出去，要看它自己的界面，并不保证每一个都能用。
 
-- 开启：设置 → 虚拟键盘 → 智能回车。
-- 在系统无障碍设置中启用「Fcitx5 智能回车」。Android 13 及以上若开关不可用，先到应用信息页允许「受限设置」。
-- 长按回车插入换行。
-- 诊断模式默认关闭。打开后，找不到发送按钮时会把按钮标签写到 `Download/fcitx5-smart-enter-dump-*.txt`。
+已发布的安装包仅适用于 **arm64-v8a** 手机（几乎所有现代 Android 手机）。
 
-隐私：应用没有 `INTERNET` 权限。无障碍辅助只在按下回车时动作，不保存任何内容。诊断记录只含按钮标签，且默认关闭。
+### 安装
 
-签名与官方版不同，必须替换官方应用，不能覆盖安装。Rime 等插件须用同一把密钥编译，才能被本应用加载。
+请先卸载官方版 Fcitx5 for Android，再安装本仓库 [Releases](https://github.com/ion76-design/fcitx5-android-smart-enter/releases) 里的包。签名不同，不能覆盖安装。
+
+如果已经装了本 fork 的 v2，可以直接覆盖安装 v2.1，用的是同一把签名密钥。
+
+要用 Rime，请安装本 fork 发布的插件，它必须和主程序同一把密钥。[v2 发布页](https://github.com/ion76-design/fcitx5-android-smart-enter/releases/tag/smart-enter-v2) 上的 Rime 插件可以继续和 v2.1 一起用。官方构建的插件不能和这个版本一起用。
+
+### v2.1
+
+最新版是 [smart-enter-v2.1](https://github.com/ion76-design/fcitx5-android-smart-enter/releases/tag/smart-enter-v2.1)。它修了官方 X Android 应用里回复发不出去的问题：按下发送时，应当点击回复框上的「回复」或「发布」按钮，而不是帖子的「更多」菜单。versionName `smart-enter-v2.1`，arm64 的 versionCode 是 132，由提交 `ecbaa3c61cf789c00ef60e284d5d4bbd6eef7d1a` 构建。
+
+这项修正已经打进已发布的 v2.1 安装包。对应源码在尚未合并的 [PR #2](https://github.com/ion76-design/fcitx5-android-smart-enter/pull/2)，当前 master 还没有这段改动。上一版 [smart-enter-v2](https://github.com/ion76-design/fcitx5-android-smart-enter/releases/tag/smart-enter-v2) 仍然可以下载（versionCode 122，合并提交 `45d79a5`，基于上游 `eb5b502`）。
+
+### 启用
+
+设置 → 虚拟键盘 → 智能回车。
+
+如果某个应用的输入框不响应发送动作，请在 Android 设置 → 无障碍 中开启「Fcitx5 智能回车」。Android 13 及以上可能需要先在应用信息 → ⋮ → 允许受限设置。长按回车键输入换行。
+
+诊断模式默认关闭。打开后，找不到发送按钮时会把按钮标签写到 `Download/fcitx5-smart-enter-dump-*.txt`，不记录你输入的内容。
+
+### 隐私
+
+应用没有 INTERNET 权限。无障碍辅助只在你按下回车时工作（找到并点击发送按钮），不保存任何数据。诊断记录只含按钮标签，且默认关闭。
+
+### 下载与校验
+
+- [fcitx5-android-smart-enter-v2.1-arm64-v8a.apk](https://github.com/ion76-design/fcitx5-android-smart-enter/releases/download/smart-enter-v2.1/fcitx5-android-smart-enter-v2.1-arm64-v8a.apk)（54550491 字节）  
+  SHA-256 `9457de41826074f9df83f1a56b8478d2e86a6ac81567b56986eee8875a30c0c3`
+- [fcitx5-android-smart-enter-v2-arm64-v8a.apk](https://github.com/ion76-design/fcitx5-android-smart-enter/releases/download/smart-enter-v2/fcitx5-android-smart-enter-v2-arm64-v8a.apk)  
+  SHA-256 `e677a7634f21cae9bb09d521af3ecfb61b2c0e4dfd753660c821be2645a68d3b`
+- Rime 插件 [fcitx5-android-plugin-rime-arm64-v8a.apk](https://github.com/ion76-design/fcitx5-android-smart-enter/releases/download/smart-enter-v2/fcitx5-android-plugin-rime-arm64-v8a.apk)（附在 v2 发布页，与 v2.1 同一签名密钥）  
+  SHA-256 `e95804a6be18945c7e078fc19da4f2f3c1c5c2558e021a652e89da6b617b633a`
+
+本 fork 的签名证书 SHA-256：`25cf25e50967cdc452a01230c000209991fc3c291e578eaf04fe2c59cbcd3ccd`。
+
+非官方构建，许可证 LGPL-2.1，基于上游作者的 [fcitx5-android](https://github.com/fcitx5-android/fcitx5-android)。官方 GitHub Release、F-Droid、Google Play 和 Jenkins 上的包没有智能回车，签名也不同，不能当作本 fork 的安装包。
 
 ## Smart Enter (this fork)
 
-This is a personal fork of [fcitx5-android](https://github.com/fcitx5-android/fcitx5-android). It adds an opt-in Smart Enter feature: the return key becomes a Send key in chat apps, for a per-app list or for all apps. An optional accessibility service clicks the app's own send button when Enter is pressed.
+fcitx5-android (小企鹅输入法) with Smart Enter, a personal fork of [fcitx5-android](https://github.com/fcitx5-android/fcitx5-android). In chat, the return key turns into Send, similar to the iOS keyboard, for example in X, Instagram, LINE, and KakaoTalk. It can apply to a list of apps or to all apps; those four are the default list. Whether a given app actually sends depends on that app. This fork does not guarantee every app.
 
-- Enable it under Settings → Virtual keyboard → Smart Enter.
-- Turn on "Fcitx5 Smart Enter" in Android accessibility settings. On Android 13 and later, if the switch is unavailable, allow restricted settings on the app info page.
-- Long-press Enter to insert a newline.
-- Diagnostic mode is off by default. When it is on and no send button is found, button labels are written to `Download/fcitx5-smart-enter-dump-*.txt`.
+Published APKs are **arm64-v8a only** (almost all modern Android phones).
 
-Privacy: the app has no `INTERNET` permission. The accessibility helper acts only when Enter is pressed and stores nothing. The diagnostic dump records button labels only and is off by default.
+### Install
 
-The package must replace the official app (different signature, so it cannot be installed over it). Plugins such as Rime must be built with the same signing key.
+Uninstall the official Fcitx5 for Android first, then install a package from this repository's [Releases](https://github.com/ion76-design/fcitx5-android-smart-enter/releases). The signature is different, so this fork cannot be installed over the official app.
 
-## Download
+If you already have this fork's v2, v2.1 installs over it with the same signing key.
 
-[<img src="https://github.com/rubenpgrady/get-it-on-github/raw/refs/heads/main/get-it-on-github.png" alt="Git it on GitHub" width="207" height="80">](https://github.com/fcitx5-android/fcitx5-android/releases/latest)
-[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" width="207" height="80">](https://f-droid.org/packages/org.fcitx.fcitx5.android)
-[<img alt="Get it on Google Play" src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" width="207" height="80">](https://play.google.com/store/apps/details?id=org.fcitx.fcitx5.android)
+For Rime, install the plugin published by this fork; it has to share the main app's key. The plugin on the [v2 release](https://github.com/ion76-design/fcitx5-android-smart-enter/releases/tag/smart-enter-v2) still works with v2.1. Plugins from the official build will not.
 
-You can also download the **latest CI build** on our Jeninks server: [![build status](https://img.shields.io/jenkins/build.svg?jobUrl=https://jenkins.fcitx-im.org/job/android/job/fcitx5-android/)](https://jenkins.fcitx-im.org/job/android/job/fcitx5-android/)
+### v2.1
 
-> [!NOTE]
-> APKs downloaded from GitHub Release/F-Droid/Jenkins have the same signature, which means they're compatible when upgrading, but Google Play's do not.
-> <details>
-> <summary>(click here for detailed signature info)</summary>
-> <ul>
-> <li>Package Name: <code>org.fcitx.fcitx5.android</code></li>
-> <li>Certificate SHA-256 fingerprint:</li>
-> <ul>
-> <li>GitHub Release/Jenkins/F-Droid</li>
-> <code>E4:DB:1E:9E:DF:F1:36:29:D0:7D:E4:BB:F8:16:5F:E9:BD:85:57:AB:55:09:26:72:DA:8E:40:DB:E4:84:EC:D7</code>
-> <li>Google Play</li>
-> <code>06:53:6F:F6:E8:76:C0:14:E1:4B:44:6F:61:FA:2B:80:9E:06:67:39:A1:D1:17:0D:0A:7A:89:88:4C:48:00:33</code>
-> </ul>
-> </ul>
-> </details>
+The latest build is [smart-enter-v2.1](https://github.com/ion76-design/fcitx5-android-smart-enter/releases/tag/smart-enter-v2.1). It fixes sending a reply in the official X Android app: pressing send should click the composer Reply / Post button (回复 / 发布), not the post overflow menu (更多). versionName `smart-enter-v2.1`, arm64 versionCode 132, built from commit `ecbaa3c61cf789c00ef60e284d5d4bbd6eef7d1a`.
+
+That fix is already in the published v2.1 APK. The source is the still-open [PR #2](https://github.com/ion76-design/fcitx5-android-smart-enter/pull/2) and is not on master yet. The previous [smart-enter-v2](https://github.com/ion76-design/fcitx5-android-smart-enter/releases/tag/smart-enter-v2) build is still available (versionCode 122, merge commit `45d79a5`, based on upstream `eb5b502`).
+
+### Enable
+
+设置 → 虚拟键盘 → 智能回车.
+
+For apps whose input box ignores the send action, enable 「Fcitx5 智能回车」 in Android Settings → Accessibility. On Android 13+ you may first need App info → ⋮ → Allow restricted settings. Long-press Enter for a newline.
+
+Diagnostic mode is off by default. When it is on and no send button is found, button labels are written to `Download/fcitx5-smart-enter-dump-*.txt`. It does not record what you type.
+
+### Privacy
+
+The app has no INTERNET permission. The accessibility helper only acts when you press Enter (it finds and taps the send button) and stores nothing. The diagnostic dump records button labels only and is off by default.
+
+### Download and checksums
+
+- [fcitx5-android-smart-enter-v2.1-arm64-v8a.apk](https://github.com/ion76-design/fcitx5-android-smart-enter/releases/download/smart-enter-v2.1/fcitx5-android-smart-enter-v2.1-arm64-v8a.apk) (54550491 bytes)  
+  SHA-256 `9457de41826074f9df83f1a56b8478d2e86a6ac81567b56986eee8875a30c0c3`
+- [fcitx5-android-smart-enter-v2-arm64-v8a.apk](https://github.com/ion76-design/fcitx5-android-smart-enter/releases/download/smart-enter-v2/fcitx5-android-smart-enter-v2-arm64-v8a.apk)  
+  SHA-256 `e677a7634f21cae9bb09d521af3ecfb61b2c0e4dfd753660c821be2645a68d3b`
+- Rime plugin [fcitx5-android-plugin-rime-arm64-v8a.apk](https://github.com/ion76-design/fcitx5-android-smart-enter/releases/download/smart-enter-v2/fcitx5-android-plugin-rime-arm64-v8a.apk) (attached to the v2 release, same signing key as v2.1)  
+  SHA-256 `e95804a6be18945c7e078fc19da4f2f3c1c5c2558e021a652e89da6b617b633a`
+
+This fork's signing certificate SHA-256: `25cf25e50967cdc452a01230c000209991fc3c291e578eaf04fe2c59cbcd3ccd`.
+
+Unofficial build, LGPL-2.1, based on [fcitx5-android](https://github.com/fcitx5-android/fcitx5-android) by the upstream authors. Official GitHub Release, F-Droid, Google Play, and Jenkins packages do not include Smart Enter and use a different signature, so they are not the download for this fork.
 
 In case you want Fcitx5 on other platforms: [macOS](https://github.com/fcitx-contrib/fcitx5-macos), [iOS](https://github.com/fcitx-contrib/fcitx5-ios), [HarmonyOS](https://github.com/fcitx-contrib/fcitx5-harmony), [ChromeOS](https://github.com/fcitx-contrib/fcitx5-chrome), [Windows](https://github.com/fcitx-contrib/fcitx5-windows); or [try Fcitx5 in the browser](https://fcitx-contrib.github.io/online/index.html)
 
