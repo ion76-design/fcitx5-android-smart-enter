@@ -12,7 +12,6 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import java.lang.ref.WeakReference
-import java.util.Locale
 import kotlin.math.abs
 
 /**
@@ -22,6 +21,7 @@ import kotlin.math.abs
  * the system node cache stays up to date), it keeps no state and logs nothing.
  * Only when the user presses the Smart Enter key in fcitx5, the IME (same process) asks it to look
  * at the app window once and click the button that looks like "Send" next to the focused input.
+ * On X, that button is the composer Reply/Post control above the field, never the post overflow.
  */
 class SmartEnterAccessibilityService : AccessibilityService() {
 
@@ -57,9 +57,11 @@ class SmartEnterAccessibilityService : AccessibilityService() {
                 ids = listOf("send", "send_button"),
                 labels = listOf("전송", "send", "发送", "傳送", "送信")
             ),
-            "com.twitter.android" to AppRule(
-                ids = listOf("dm_composer_send_button", "dm_send_button", "send_button", "composer_send_button"),
-                labels = listOf("send", "send message", "发送", "傳送", "送信", "보내기", "전송")
+            // DM send ids sit beside the field. Reply/Post (`tweet_button`) is the toolbar
+            // button above the composer; its label is Reply / Post / 回复 / 发布, not "发送".
+            SmartEnterMatcher.TWITTER to AppRule(
+                ids = SmartEnterMatcher.TWITTER_SEND_IDS,
+                labels = SmartEnterMatcher.TWITTER_LABELS,
             ),
             "jp.naver.line.android" to AppRule(
                 ids = listOf("chathistory_send_button_image", "chathistory_send_button"),
@@ -83,58 +85,31 @@ class SmartEnterAccessibilityService : AccessibilityService() {
             "com.ss.android.ugc.aweme" to TIKTOK_RULE,
         )
 
-        // words that strongly indicate a "send" button, compared against normalized text / description
-        private val SEND_WORDS = listOf(
-            "send", "send message", "send prompt", "submit", "发送", "發送", "傳送", "送出", "送信", "送る",
-            "전송", "보내기", "enviar", "envoyer", "senden", "invia", "отправить", "kirim", "gửi", "ส่ง", "gönder"
-        )
-
-        // weaker matches: social apps' "Post"/"Reply" buttons
-        private val POST_WORDS = listOf(
-            "post", "reply", "tweet", "comment", "发布", "發佈", "發布", "发帖", "回复", "回覆",
-            "评论", "留言", "投稿", "返信", "ポスト", "게시", "답글", "댓글", "publicar", "responder"
-        )
-
         // view id tokens, eg. "send_button", "btnSend", "chat_send"; but not "sender_name"
         private val SEND_ID_TOKENS = setOf("send", "submit")
         private val POST_ID_TOKENS = setOf("post", "reply", "tweet", "comment")
         private val BUTTON_ID_TOKENS = setOf("button", "btn")
 
-        // never click these even if they also match
+        // never click these even if they also match.
+        // "更多" / "more options" are the post overflow (···), whose description often also
+        // contains "post" ("More options for this post").
         private val NEGATIVE_PARTS = listOf(
             "voice", "audio", "record", "mic", "sticker", "emoji", "gif", "camera", "photo",
             "gallery", "attach", "heart", "語音", "语音", "录音", "貼圖", "贴图",
             "表情", "相机", "相機", "照片", "图片", "圖片", "음성", "스티커", "이모티콘", "사진", "スタンプ",
-            "音声", "写真", "schedule", "定时", "later", "@", "mention", "提及"
+            "音声", "写真", "schedule", "定时", "later", "@", "mention", "提及",
+            "更多", "more options", "overflow"
         )
         private val NEGATIVE_ID_TOKENS = setOf(
             "voice", "audio", "record", "mic", "sticker", "emoji", "emoticon", "gif", "camera",
-            "gallery", "attach", "media", "plus", "more", "at", "mention", "like", "keyboard"
+            "gallery", "attach", "media", "plus", "more", "at", "mention", "like", "keyboard",
+            "overflow", "curation", "caret", "bookmark", "retweet", "grok"
         )
 
-        private fun norm(s: CharSequence?): String =
-            s?.toString()?.trim()?.lowercase(Locale.ROOT) ?: ""
-
         private fun idEntry(node: AccessibilityNodeInfo) =
-            node.viewIdResourceName?.substringAfter(":id/") ?: ""
+            SmartEnterMatcher.idEntry(node.viewIdResourceName)
 
-        private fun idTokens(rawId: String) =
-            rawId.replace(Regex("([a-z0-9])([A-Z])"), "$1_$2")
-                .lowercase(Locale.ROOT).split(Regex("[^a-z0-9]+")).filter { it.isNotEmpty() }.toSet()
-
-        private fun matchesAny(s: String, words: List<String>): Boolean {
-            if (s.isEmpty() || s.length > 40) return false
-            return words.any { w ->
-                if (s == w) return@any true
-                if (w.all { it.code < 128 }) {
-                    // latin words: whole-word match, e.g. "send", "send message", "tap to send"
-                    Regex("(^|[^\\p{L}])${Regex.escape(w)}([^\\p{L}]|$)").containsMatchIn(s)
-                } else {
-                    // CJK etc.: substring match, e.g. "发送消息", "メッセージを送信"
-                    s.contains(w)
-                }
-            }
-        }
+        private fun idTokens(rawId: String) = SmartEnterMatcher.idTokens(rawId)
 
         private fun containsAny(s: String, parts: List<String>) = parts.any { s.contains(it) }
 
@@ -223,6 +198,7 @@ class SmartEnterAccessibilityService : AccessibilityService() {
     }
 
     private class Ctx(
+        val packageName: String,
         val root: AccessibilityNodeInfo,
         val focused: AccessibilityNodeInfo?,
         val focusRect: Rect,
@@ -232,10 +208,38 @@ class SmartEnterAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * validate a candidate and return (clickable target, geometry bonus), or null if unusable
+     * true when the node we matched, or the clickable control we would actually press, is a post
+     * overflow or an engagement button. The walk stops at [target], so a Reply button that merely
+     * sits inside a larger composer container is still accepted.
      */
-    private fun checkCandidate(ctx: Ctx, node: AccessibilityNodeInfo): Pair<AccessibilityNodeInfo, Int>? {
+    private fun rejectBlocked(
+        packageName: String,
+        node: AccessibilityNodeInfo,
+        target: AccessibilityNodeInfo
+    ): Boolean {
+        var cur: AccessibilityNodeInfo? = node
+        var depth = 0
+        while (cur != null && depth < 8) {
+            if (SmartEnterMatcher.isBlocked(packageName, cur.viewIdResourceName)) return true
+            if (cur == target) return false
+            cur = cur.parent
+            depth++
+        }
+        return true
+    }
+
+    /**
+     * validate a candidate and return (clickable target, geometry bonus), or null if unusable.
+     * @param strong a known composer send id, or an exact Reply/Post/Send label. X puts that
+     * button in the toolbar above the field; weak matches still have to sit beside the input.
+     */
+    private fun checkCandidate(
+        ctx: Ctx,
+        node: AccessibilityNodeInfo,
+        strong: Boolean
+    ): Pair<AccessibilityNodeInfo, Int>? {
         val target = clickableTarget(node) ?: return null
+        if (rejectBlocked(ctx.packageName, node, target)) return null
         target.refresh()
         if (!target.isVisibleToUser || !target.isEnabled || target.isEditable) return null
         // a container that holds the input box itself is not a button
@@ -245,9 +249,9 @@ class SmartEnterAccessibilityService : AccessibilityService() {
         var bonus = 0
         if (ctx.hasFocus) {
             val fr = ctx.focusRect
-            // the send button sits in the same row as the input box, overlaps it, or is below it;
-            // anything well above it is chat history or a toolbar, never click those
-            if (r.centerY() < fr.top - ctx.band) return null
+            // weak matches must sit in the input row or below it. anything well above is
+            // timeline chrome. strong matches (X's Reply/Post button) may be in the toolbar.
+            if (!strong && r.centerY() < fr.top - ctx.band) return null
             val dy = abs(r.centerY() - fr.centerY())
             if (dy <= ctx.band || Rect.intersects(r, fr)) bonus += 30
             if (r.left >= fr.centerX()) bonus += 20
@@ -271,23 +275,30 @@ class SmartEnterAccessibilityService : AccessibilityService() {
     private fun tryRule(ctx: Ctx, rule: AppRule, packageName: String): Result? {
         var best: AccessibilityNodeInfo? = null
         var bestScore = Int.MIN_VALUE
-        fun consider(node: AccessibilityNodeInfo, base: Int) {
-            val (target, bonus) = checkCandidate(ctx, node) ?: return
+        fun consider(node: AccessibilityNodeInfo, base: Int, strong: Boolean) {
+            val (target, bonus) = checkCandidate(ctx, node, strong) ?: return
             if (base + bonus > bestScore) {
                 bestScore = base + bonus
                 best = target
             }
         }
+        // explicit ids outrank a nearby label. base 400 stays ahead of a label (150) even
+        // after the maximum distance penalty, so X's toolbar Reply button beats tweet chrome.
         rule.ids.forEach { id ->
             runCatching { ctx.root.findAccessibilityNodeInfosByViewId("$packageName:id/$id") }
-                .getOrNull()?.forEach { consider(it, 200) }
+                .getOrNull()?.forEach { consider(it, 400, strong = true) }
         }
         rule.labels.forEach { label ->
             runCatching { ctx.root.findAccessibilityNodeInfosByText(label) }.getOrNull()?.forEach { n ->
                 if (n.isEditable) return@forEach
-                val desc = norm(n.contentDescription)
-                val text = norm(n.text).takeIf { it.length <= 16 } ?: ""
-                if (desc == label || text == label) consider(n, 150)
+                val desc = SmartEnterMatcher.norm(n.contentDescription)
+                val textFull = SmartEnterMatcher.norm(n.text)
+                if (containsAny(desc, NEGATIVE_PARTS) || containsAny(textFull, NEGATIVE_PARTS)) return@forEach
+                val text = textFull.takeIf { it.length <= 16 } ?: ""
+                if (desc == label || text == label) {
+                    // an exact per-app label is the send control even when it sits above the field
+                    consider(n, 150, strong = true)
+                }
             }
         }
         return best?.let { click(it) }
@@ -310,21 +321,31 @@ class SmartEnterAccessibilityService : AccessibilityService() {
                 node.getChild(i)?.let { queue.add(it) }
             }
             if (!node.isVisibleToUser || node.isEditable) continue
-            val text = norm(node.text)
-            val desc = norm(node.contentDescription)
+            if (SmartEnterMatcher.isBlocked(ctx.packageName, node.viewIdResourceName)) continue
+            val text = SmartEnterMatcher.norm(node.text)
+            val desc = SmartEnterMatcher.norm(node.contentDescription)
             val tokens = idTokens(idEntry(node))
             if (containsAny(text, NEGATIVE_PARTS) || containsAny(desc, NEGATIVE_PARTS)) continue
             if (tokens.any { it in NEGATIVE_ID_TOKENS }) continue
             // button labels are short; long texts are most likely chat messages
             val label = if (text.length <= 16) text else ""
+            val known = SmartEnterMatcher.isKnownSendId(ctx.packageName, node.viewIdResourceName)
+            val exactPost = SmartEnterMatcher.isExactPostLabel(label) ||
+                SmartEnterMatcher.isExactPostLabel(desc)
+            val sendPhrase = SmartEnterMatcher.matchesSendPhrase(label) ||
+                SmartEnterMatcher.matchesSendPhrase(desc)
             var score = 0
-            if (matchesAny(label, SEND_WORDS) || matchesAny(desc, SEND_WORDS)) score += 100
+            if (known) score += 400
+            if (sendPhrase) score += 100
             if (tokens.any { it in SEND_ID_TOKENS }) score += 80
             else if (tokens.any { it in POST_ID_TOKENS } && tokens.any { it in BUTTON_ID_TOKENS }) score += 60
-            if (score == 0 && (matchesAny(label, POST_WORDS) || matchesAny(desc, POST_WORDS))) score += 40
+            // exact "Reply" / "回复" / "Post" only. a description that merely contains those
+            // words ("More options for this post", "2条回复") is not a send button.
+            if (score == 0 && exactPost) score += 40
             if (score == 0) {
                 if (rule?.unlabeledRightmost == true && ctx.hasFocus && text.isEmpty() && desc.isEmpty() &&
-                    isImageOrButton(node) && hasClickAction(node) && node.isEnabled
+                    isImageOrButton(node) && hasClickAction(node) && node.isEnabled &&
+                    !SmartEnterMatcher.isBlocked(ctx.packageName, node.viewIdResourceName)
                 ) {
                     val r = Rect().also { node.getBoundsInScreen(it) }
                     val fr = ctx.focusRect
@@ -337,7 +358,8 @@ class SmartEnterAccessibilityService : AccessibilityService() {
                 }
                 continue
             }
-            val (target, bonus) = checkCandidate(ctx, node) ?: continue
+            val (target, bonus) = checkCandidate(ctx, node, strong = known || exactPost || sendPhrase)
+                ?: continue
             score += bonus
             if (score > bestScore) {
                 bestScore = score
@@ -363,7 +385,7 @@ class SmartEnterAccessibilityService : AccessibilityService() {
         root.refresh()
         val focused = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)?.also { it.refresh() }
         val focusRect = Rect().also { r -> focused?.getBoundsInScreen(r) }
-        val ctx = Ctx(root, focused, focusRect)
+        val ctx = Ctx(packageName, root, focused, focusRect)
         val rule = RULES[packageName]
         rule?.let { tryRule(ctx, it, packageName) }?.let { return it }
         tryGeneric(ctx, rule)?.let { return it }
