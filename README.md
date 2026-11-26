@@ -9,6 +9,7 @@
 - 开启：设置 → 虚拟键盘 → 智能回车。
 - 在系统无障碍设置中启用「Fcitx5 智能回车」。Android 13 及以上若开关不可用，先到应用信息页允许「受限设置」。
 - 长按回车插入换行。
+- 在 X 里回复评论时，智能回车会点回复栏顶部的「回复 / 发布」，不会点帖子右上角的「更多」菜单。
 - 诊断模式默认关闭。打开后，找不到发送按钮时会把按钮标签写到 `Download/fcitx5-smart-enter-dump-*.txt`。
 
 隐私：应用没有 `INTERNET` 权限。无障碍辅助只在按下回车时动作，不保存任何内容。诊断记录只含按钮标签，且默认关闭。
@@ -22,6 +23,7 @@ This is a personal fork of [fcitx5-android](https://github.com/fcitx5-android/fc
 - Enable it under Settings → Virtual keyboard → Smart Enter.
 - Turn on "Fcitx5 Smart Enter" in Android accessibility settings. On Android 13 and later, if the switch is unavailable, allow restricted settings on the app info page.
 - Long-press Enter to insert a newline.
+- In the X app, a reply is sent with the Reply/Post button (回复 / 发布) in the composer toolbar. Smart Enter does not open the post's overflow menu.
 - Diagnostic mode is off by default. When it is on and no send button is found, button labels are written to `Download/fcitx5-smart-enter-dump-*.txt`.
 
 Privacy: the app has no `INTERNET` permission. The accessibility helper acts only when Enter is pressed and stores nothing. The diagnostic dump records button labels only and is off by default.
